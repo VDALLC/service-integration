@@ -1,0 +1,23 @@
+{
+    "name": "vda/service-integration",
+    "type": "library",
+    "description": "Event service for interprocess communication",
+    "keywords": ["event"],
+    "require": {
+        "php": ">=5.3.23",
+        "vda/util": "self.version"
+    },
+    "suggest": {
+        "vda/messaging": "Event service implementation atop of STOMP (self.version)"
+    },
+    "autoload": {
+        "psr-0": { "": "" }
+    },
+    "target-dir": "Vda/ServiceIntegration",
+    "minimum-stability": "dev",
+    "extra": {
+        "branch-alias": {
+            "dev-trunk": "1-dev"
+        }
+    }
+}
