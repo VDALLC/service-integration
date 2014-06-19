@@ -1,12 +1,17 @@
 <?php
-namespace Vda\ServiceIntegration\Event;
+namespace Vda\ServiceIntegration\Event\Impl;
 
 use Vda\Messaging\IMessageProducer;
 use Vda\Messaging\IMessengerFactory;
 use Vda\Messaging\Message;
 use Vda\Messaging\MessagingException;
 use Vda\Messaging\Subscription;
-use Vda\ServiceIntegration\Event\Impl\EventListener;
+use Vda\ServiceIntegration\Event\BaseEvent;
+use Vda\ServiceIntegration\Event\Event;
+use Vda\ServiceIntegration\Event\IEventListener;
+use Vda\ServiceIntegration\Event\IEventService;
+use Vda\ServiceIntegration\Event\ListenerConfig;
+use Vda\ServiceIntegration\Event\Task;
 use Vda\Util\BeanUtil;
 
 class EventService implements IEventService
@@ -166,7 +171,7 @@ class EventService implements IEventService
             );
         }
 
-        return new EventListener($consumer, $this, $ackMode);
+        return new EventListener($consumer, $this, $listenerConfig->getIsAutoAck());
     }
 
     private function formatTopicChannel($channel)

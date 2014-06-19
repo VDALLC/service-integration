@@ -16,12 +16,6 @@ class BaseEvent
     private $priority;
 
     /**
-     * Link to the message which contains this event
-     * @var \Vda\Messaging\Message
-     */
-    private $message;
-
-    /**
      * @param string $channel Event destination
      * @param string $type Type of this event
      * @param mixed $data Either array or object containing the event data
@@ -71,21 +65,5 @@ class BaseEvent
     public static function getTransientFields()
     {
         return self::$transientFields;
-    }
-
-    /**
-     * @param \Vda\Messaging\Message $message
-     */
-    public function setMessage($message)
-    {
-        $this->message = $message;
-    }
-
-    /**
-     * @return \Vda\Messaging\Message|null
-     */
-    public function getMessage()
-    {
-        return $this->message;
     }
 }

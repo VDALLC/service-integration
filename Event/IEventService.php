@@ -7,21 +7,21 @@ interface IEventService
 {
     /**
      * @param Event $event
-     * @param bool $suppressExceptions
-     * @throws \RuntimeException
+     * @param bool $suppressExceptions   If true, don't throw exception, only log failure.
+     * @throws \RuntimeException         If event sending failed.
      */
     public function publish(Event $event, $suppressExceptions = false);
 
     /**
      * @param Task $task
-     * @param bool $suppressExceptions
-     * @throws \RuntimeException
+     * @param bool $suppressExceptions   If true, don't throw exception, only log failure.
+     * @throws \RuntimeException         If event sending failed.
      */
     public function enqueue(Task $task, $suppressExceptions = false);
 
     /**
      * @param ListenerConfig $listenerConfig
-     * @return Listener
+     * @return IEventListener
      */
     public function createListener(ListenerConfig $listenerConfig);
 
