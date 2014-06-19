@@ -85,6 +85,8 @@ class EventListener implements IEventListener
                 /* @var $message Message*/
                 $this->consumer->ack($message->getId());
 
+                unset($this->messagesToAck[$messageHash]);
+
             } catch(\Exception $e) {
                 throw new MessageAckFailedException('Failed to ack message.', 0, $e);
             }

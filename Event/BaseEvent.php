@@ -34,7 +34,6 @@ class BaseEvent
         $this->data = $data;
         $this->persistent = $persistent;
         $this->priority = $priority;
-        $this->message = null;
     }
 
     public function getChannel()
