@@ -1,10 +1,10 @@
 <?php
 namespace Vda\ServiceIntegration\Event;
 
-final class Event extends AbstractEvent
+final class Task extends AbstractEvent
 {
     public function getChannelType()
     {
-        return self::CHANNEL_TYPE_EVENT;
+        return self::CHANNEL_TYPE_TASK;
     }
 }
