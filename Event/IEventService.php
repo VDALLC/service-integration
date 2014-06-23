@@ -20,14 +20,14 @@ interface IEventService
     public function enqueue(Task $task, $suppressExceptions = false);
 
     /**
-     * @param ListenerConfig $listenerConfig
+     * @param EventListenerConfig $listenerConfig
      * @return IEventListener
      */
-    public function createListener(ListenerConfig $listenerConfig);
+    public function createListener(EventListenerConfig $listenerConfig);
 
     /**
      * @param Message $message
-     * @return BaseEvent
+     * @return AbstractEvent
      */
     public function extractEventFromMessage(Message $message);
 }

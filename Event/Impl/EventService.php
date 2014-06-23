@@ -6,12 +6,13 @@ use Vda\Messaging\IMessengerFactory;
 use Vda\Messaging\Message;
 use Vda\Messaging\MessagingException;
 use Vda\Messaging\Subscription;
-use Vda\ServiceIntegration\Event\BaseEvent;
+use Vda\ServiceIntegration\Event\AbstractEvent;
+use Vda\ServiceIntegration\Event\ChannelSettings;
 use Vda\ServiceIntegration\Event\Event;
+use Vda\ServiceIntegration\Event\Task;
 use Vda\ServiceIntegration\Event\IEventListener;
 use Vda\ServiceIntegration\Event\IEventService;
-use Vda\ServiceIntegration\Event\ListenerConfig;
-use Vda\ServiceIntegration\Event\Task;
+use Vda\ServiceIntegration\Event\EventListenerConfig;
 use Vda\Util\BeanUtil;
 
 class EventService implements IEventService
@@ -41,13 +42,13 @@ class EventService implements IEventService
     }
 
     /**
-     * @param BaseEvent $baseEvent
+     * @param AbstractEvent $baseEvent
      * @return Message
      */
-    private function wrapEventInMessage(BaseEvent $baseEvent)
+    private function wrapEventInMessage(AbstractEvent $baseEvent)
     {
         $message = new Message(
-            BeanUtil::toJson($baseEvent, BaseEvent::getTransientFields())
+            BeanUtil::toJson($baseEvent, AbstractEvent::getTransientFields())
         );
 
         $message->setPersistent($baseEvent->isPersistent());
@@ -58,26 +59,41 @@ class EventService implements IEventService
 
     /**
      * @param Message $message
-     * @return BaseEvent
+     * @throws \Exception
+     * @return AbstractEvent
      */
     public function extractEventFromMessage(Message $message)
     {
         $eventData = json_decode($message->getBody(), true);
-        $baseEvent = new BaseEvent(
-            $eventData['channel'],
-            $eventData['type'],
-            $eventData['data']
-        );
+
+        switch ($eventData['channelType']) {
+            case AbstractEvent::CHANNEL_TYPE_TASK:
+                $baseEvent = new Task(
+                    $eventData['channel'],
+                    $eventData['type'],
+                    $eventData['data']
+                );
+                break;
+
+            default:
+            case AbstractEvent::CHANNEL_TYPE_EVENT:
+                $baseEvent = new Event(
+                    $eventData['channel'],
+                    $eventData['type'],
+                    $eventData['data']
+                );
+                break;
+        }
         return $baseEvent;
     }
 
     /**
-     * @param BaseEvent $message
+     * @param AbstractEvent $message
      * @param bool $suppressExceptions
      * @throws \RuntimeException
      * @throws \Exception
      */
-    private function send(BaseEvent $message, $suppressExceptions = false)
+    private function send(AbstractEvent $message, $suppressExceptions = false)
     {
         try {
             if (empty($this->publisher)) {
@@ -132,46 +148,45 @@ class EventService implements IEventService
     }
 
     /**
-     * @param ListenerConfig $listenerConfig
+     * @param EventListenerConfig $listenerConfig
      * @return IEventListener
      */
-    public function createListener(ListenerConfig $listenerConfig)
+    public function createListener(EventListenerConfig $listenerConfig)
     {
         $consumer = $this->messengerFactory->createMessenger($listenerConfig->getListenerId());
 
-        $ackMode = $listenerConfig->getIsAutoAck()
-            ? Subscription::ACK_AUTO
-            : Subscription::ACK_INDIVIDUAL;
-
-        $isDurable = $listenerConfig->getIsDurable();
 
         foreach ((array)$listenerConfig->getEventChannels() as $eventChannel) {
-            $channel = $this->formatTopicChannel($eventChannel);
+            /* @var $eventChannel ChannelSettings */
+
+            $channel = $this->formatTopicChannel($eventChannel->getChannel());
 
             $consumer->subscribe(
                 new Subscription(
                     $channel,
                     'topic_' . $listenerConfig->getListenerId() . '_' . $channel,
-                    $isDurable,
-                    $ackMode
+                    $eventChannel->isDurable(),
+                    $eventChannel->isAutoAck() ? Subscription::ACK_AUTO : Subscription::ACK_INDIVIDUAL
                 )
             );
         }
 
         foreach ((array)$listenerConfig->getTaskChannels() as $taskChannel) {
-            $channel = $this->formatQueueChannel($taskChannel);
+            /* @var $taskChannel ChannelSettings */
+
+            $channel = $this->formatQueueChannel($taskChannel->getChannel());
 
             $consumer->subscribe(
                 new Subscription(
                     $channel,
                     'queue_'  . $listenerConfig->getListenerId() . '_' . $channel,
                     true, //queue is always durable
-                    $ackMode
+                    $taskChannel->isAutoAck() ? Subscription::ACK_AUTO : Subscription::ACK_INDIVIDUAL
                 )
             );
         }
 
-        return new EventListener($consumer, $this, $listenerConfig->getIsAutoAck());
+        return new EventListener($consumer, $this, $listenerConfig);
     }
 
     private function formatTopicChannel($channel)

@@ -1,7 +1,7 @@
 <?php
 namespace Vda\ServiceIntegration\Event;
 
-class BaseEvent
+abstract class AbstractEvent
 {
     private static $transientFields = [
         'persistent',
@@ -9,7 +9,11 @@ class BaseEvent
         'message'
     ];
 
+    const CHANNEL_TYPE_EVENT = 'event';
+    const CHANNEL_TYPE_TASK = 'task';
+
     private $channel;
+    private $channelType;
     private $type;
     private $data;
     private $persistent;
@@ -30,11 +34,14 @@ class BaseEvent
         }
 
         $this->channel = $channel;
+        $this->channelType = $this->getChannelType();
         $this->type = $type;
         $this->data = $data;
         $this->persistent = $persistent;
         $this->priority = $priority;
     }
+
+    abstract public function getChannelType();
 
     public function getChannel()
     {
