@@ -24,10 +24,4 @@ interface IEventService
      * @return IEventListener
      */
     public function createListener(EventListenerConfig $listenerConfig);
-
-    /**
-     * @param Message $message
-     * @return AbstractEvent
-     */
-    public function extractEventFromMessage(Message $message);
 }

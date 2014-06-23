@@ -1,7 +1,7 @@
 <?php
 namespace Vda\ServiceIntegration\Event\Exception;
 
-class MessageReceivingFailedException extends \Exception
+class ReceivingFailedException extends \Exception
 {
 
 }

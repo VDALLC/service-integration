@@ -7,9 +7,11 @@ use Vda\Messaging\MessagingException;
 use Vda\ServiceIntegration\Event\AbstractEvent;
 use Vda\ServiceIntegration\Event\ChannelSettings;
 use Vda\ServiceIntegration\Event\EventListenerConfig;
-use Vda\ServiceIntegration\Event\Exception\MessageAckFailedException;
-use Vda\ServiceIntegration\Event\Exception\MessageReceivingFailedException;
+use Vda\ServiceIntegration\Event\Exception\AckFailedException;
+use Vda\ServiceIntegration\Event\Exception\ReceivingFailedException;
 use Vda\ServiceIntegration\Event\IEventListener;
+use Vda\ServiceIntegration\Event\Task;
+use Vda\ServiceIntegration\Event\Event;
 
 class EventListener implements IEventListener
 {
@@ -17,16 +19,6 @@ class EventListener implements IEventListener
      * @var IMessageConsumer
      */
     private $consumer;
-
-    /**
-     * @var EventService
-     */
-    private $eventService;
-
-    /**
-     * @var \Vda\ServiceIntegration\Event\EventListenerConfig
-     */
-    private $listenerConfig;
 
     /**
      * @var ChannelSettings[]
@@ -43,22 +35,15 @@ class EventListener implements IEventListener
      */
     private $messagesToAck = [];
 
-    public function __construct(
-        IMessageConsumer $consumer,
-        EventService $eventService,
-        EventListenerConfig $listenerConfig
-    ) {
+    public function __construct(IMessageConsumer $consumer, EventListenerConfig $listenerConfig)
+    {
         $this->consumer = $consumer;
-        $this->eventService = $eventService;
-        $this->listenerConfig = $listenerConfig;
 
-        foreach ((array)$listenerConfig->getEventChannels() as $eventChannel) {
-            /* @var $eventChannel ChannelSettings */
+        foreach ($listenerConfig->getEventChannels() as $eventChannel) {
             $this->eventChannelsSettings[$eventChannel->getChannel()] = $eventChannel;
         }
 
-        foreach ((array)$listenerConfig->getTaskChannels() as $taskChannel) {
-            /* @var $taskChannel ChannelSettings */
+        foreach ($listenerConfig->getTaskChannels() as $taskChannel) {
             $this->taskChannelsSettings[$taskChannel->getChannel()] = $taskChannel;
         }
     }
@@ -68,7 +53,7 @@ class EventListener implements IEventListener
      * If there are no message after timeout or empty message received, then method return null
      *
      * @param $timeout
-     * @throws \Vda\ServiceIntegration\Event\Exception\MessageReceivingFailedException
+     * @throws \Vda\ServiceIntegration\Event\Exception\ReceivingFailedException
      * @return AbstractEvent|null
      */
     public function receive($timeout = -1)
@@ -83,7 +68,7 @@ class EventListener implements IEventListener
 
             } catch (MessagingException $e) {
                 if ($e->getMessage() != 'Unable to read message') {
-                    throw new MessageReceivingFailedException('Failed to receive a message.', 0, $e);
+                    throw new ReceivingFailedException('Failed to receive a message.', 0, $e);
                 }
 
                 if ($timeout >= 0) {
@@ -98,14 +83,14 @@ class EventListener implements IEventListener
                     continue;
                 }
             } catch(\Exception $e)  {
-                throw new MessageReceivingFailedException('Failed to receive a message.', 0, $e);
+                throw new ReceivingFailedException('Failed to receive a message.', 0, $e);
             }
 
             if (is_null($message)) {
                 return null;
             }
 
-            $baseEvent = $this->eventService->extractEventFromMessage($message);
+            $baseEvent = $this->extractEventFromMessage($message);
 
             if (!$this->isEventAutoAck($baseEvent)) {
                 $this->messagesToAck[spl_object_hash($baseEvent)] = $message;
@@ -113,6 +98,36 @@ class EventListener implements IEventListener
 
             return $baseEvent;
         }
+    }
+
+    /**
+     * @param Message $message
+     * @throws \Exception
+     * @return AbstractEvent
+     */
+    private function extractEventFromMessage(Message $message)
+    {
+        $eventData = json_decode($message->getBody(), true);
+
+        switch ($eventData['channelType']) {
+            case AbstractEvent::CHANNEL_TYPE_TASK:
+                $baseEvent = new Task(
+                    $eventData['channel'],
+                    $eventData['type'],
+                    $eventData['data']
+                );
+                break;
+
+            default:
+            case AbstractEvent::CHANNEL_TYPE_EVENT:
+                $baseEvent = new Event(
+                    $eventData['channel'],
+                    $eventData['type'],
+                    $eventData['data']
+                );
+                break;
+        }
+        return $baseEvent;
     }
 
     private function isEventAutoAck(AbstractEvent $baseEvent)
@@ -133,7 +148,7 @@ class EventListener implements IEventListener
 
     /**
      * @param AbstractEvent $baseEvent
-     * @throws \Vda\ServiceIntegration\Event\Exception\MessageAckFailedException
+     * @throws \Vda\ServiceIntegration\Event\Exception\AckFailedException
      */
     public function ack(AbstractEvent $baseEvent)
     {
@@ -141,7 +156,7 @@ class EventListener implements IEventListener
             $messageHash = spl_object_hash($baseEvent);
 
             if (!array_key_exists($messageHash, $this->messagesToAck)) {
-                throw new MessageAckFailedException('Failed to ack message. Message not found by Event');
+                throw new AckFailedException('Failed to ack message. Message not found by Event');
             }
 
             try {
@@ -152,7 +167,7 @@ class EventListener implements IEventListener
                 unset($this->messagesToAck[$messageHash]);
 
             } catch(\Exception $e) {
-                throw new MessageAckFailedException('Failed to ack message.', 0, $e);
+                throw new AckFailedException('Failed to ack message.', 0, $e);
             }
         }
     }

@@ -6,14 +6,14 @@ interface IEventListener
 {
     /**
      * @param $timeout
-     * @throws Exception\MessageReceivingFailedException
+     * @throws Exception\ReceivingFailedException
      * @return AbstractEvent
      */
     public function receive($timeout = -1);
 
     /**
      * @param AbstractEvent $baseEvent
-     * @throws Exception\MessageAckFailedException
+     * @throws Exception\AckFailedException
      */
     public function ack(AbstractEvent $baseEvent);
 }

@@ -58,36 +58,6 @@ class EventService implements IEventService
     }
 
     /**
-     * @param Message $message
-     * @throws \Exception
-     * @return AbstractEvent
-     */
-    public function extractEventFromMessage(Message $message)
-    {
-        $eventData = json_decode($message->getBody(), true);
-
-        switch ($eventData['channelType']) {
-            case AbstractEvent::CHANNEL_TYPE_TASK:
-                $baseEvent = new Task(
-                    $eventData['channel'],
-                    $eventData['type'],
-                    $eventData['data']
-                );
-                break;
-
-            default:
-            case AbstractEvent::CHANNEL_TYPE_EVENT:
-                $baseEvent = new Event(
-                    $eventData['channel'],
-                    $eventData['type'],
-                    $eventData['data']
-                );
-                break;
-        }
-        return $baseEvent;
-    }
-
-    /**
      * @param AbstractEvent $message
      * @param bool $suppressExceptions
      * @throws \RuntimeException
@@ -186,7 +156,7 @@ class EventService implements IEventService
             );
         }
 
-        return new EventListener($consumer, $this, $listenerConfig);
+        return new EventListener($consumer, $listenerConfig);
     }
 
     private function formatTopicChannel($channel)

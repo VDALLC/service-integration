@@ -26,8 +26,8 @@ class EventListenerConfig
         $taskChannels = []
     ) {
         $this->listenerId = $listenerId;
-        $this->eventChannels = $eventChannels;
-        $this->taskChannels = $taskChannels;
+        $this->eventChannels = (array)$eventChannels;
+        $this->taskChannels = (array)$taskChannels;
     }
 
     /**
