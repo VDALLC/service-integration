@@ -53,7 +53,7 @@ class EventListener implements IEventListener
      * If there are no message after timeout or empty message received, then method return null
      *
      * @param $timeout
-     * @throws \Vda\ServiceIntegration\Event\Exception\ReceivingFailedException
+     * @throws ReceivingFailedException
      * @return AbstractEvent|null
      */
     public function receive($timeout = -1)
@@ -66,37 +66,35 @@ class EventListener implements IEventListener
             try {
                 $message = $this->consumer->receive($timeout);
 
+                if (is_null($message)) {
+                    return null;
+                }
+
+                $baseEvent = $this->extractEventFromMessage($message);
+
+                if (!$this->isEventAutoAck($baseEvent)) {
+                    $this->messagesToAck[spl_object_hash($baseEvent)] = $message;
+                }
+
+                return $baseEvent;
             } catch (MessagingException $e) {
                 if ($e->getMessage() != 'Unable to read message') {
                     throw new ReceivingFailedException('Failed to receive a message.', 0, $e);
                 }
 
-                if ($timeout >= 0) {
-                    $timeout -= time() - $startTime;
-                    if ($timeout < 0)  {
+                $sleep = rand(1, 5);
+
+                if ($timeout >= 0) { // timeout != -1
+                    $timeout -= time() - $startTime + $sleep;
+                    if ($timeout <= 0) {
                         return null;
                     }
-                } else {
-                    $sleep = rand(1, 5);
-                    sleep($sleep);
-
-                    continue;
                 }
+
+                sleep($sleep);
             } catch(\Exception $e)  {
                 throw new ReceivingFailedException('Failed to receive a message.', 0, $e);
             }
-
-            if (is_null($message)) {
-                return null;
-            }
-
-            $baseEvent = $this->extractEventFromMessage($message);
-
-            if (!$this->isEventAutoAck($baseEvent)) {
-                $this->messagesToAck[spl_object_hash($baseEvent)] = $message;
-            }
-
-            return $baseEvent;
         }
     }
 
@@ -148,7 +146,7 @@ class EventListener implements IEventListener
 
     /**
      * @param AbstractEvent $baseEvent
-     * @throws \Vda\ServiceIntegration\Event\Exception\AckFailedException
+     * @throws AckFailedException
      */
     public function ack(AbstractEvent $baseEvent)
     {
