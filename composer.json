@@ -11,9 +11,8 @@
         "vda/messaging": "Event service implementation atop of STOMP (self.version)"
     },
     "autoload": {
-        "psr-0": { "": "" }
+        "psr-4": { "Vda\\ServiceIntegration\\": "src/" }
     },
-    "target-dir": "Vda/ServiceIntegration",
     "minimum-stability": "dev",
     "extra": {
         "branch-alias": {
