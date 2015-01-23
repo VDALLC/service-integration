@@ -5,7 +5,7 @@
     "keywords": ["event"],
     "require": {
         "php": ">=5.3.23",
-        "vda/util": "0.11.*"
+        "vda/util": "0.11.*|0.12.*"
     },
     "suggest": {
         "vda/messaging": "Event service implementation atop of STOMP (self.version)"
